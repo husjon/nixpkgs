@@ -12,26 +12,42 @@ let
   pname = "pico-8";
   version = "0.2.7";
 
-  src = requireFile rec {
-    name = "${pname}_${version}_amd64.zip";
-    hash = "sha256-7fLOhUdAWFsPmIhO4J1j+auObIdy4BSKkCkntkCMnqo=";
-    message = ''
-      PICO-8 cannot be installed automatically since it requires a license.
-      The archive has to be loaded into the Nix Store manually.
-      In the email from lexaloffle, you should have a link to take you a page to download the application.
-
-      Example: https://www.lexaloffle.com/games.php?page=my&key=abcdefghijklm
-
-      Note you can also find specific versions at:
-       - https://www.lexaloffle.com/games.php?page=archive (requires login)
-
-      1. Visit the download page
-      2. Download the Linux 64-bit archive
-      3. Navigate to the downloaded file and run the following command
-         nix-prefetch-url file://$PWD/${name}
-      4. Re-run the installation
-    '';
+  srcs = {
+    x86_64-linux = requireFile rec {
+      name = "${pname}_${version}_amd64.zip";
+      hash = "sha256-7fLOhUdAWFsPmIhO4J1j+auObIdy4BSKkCkntkCMnqo=";
+      message = missingArchiveMessage "Linux" "64-bit" name;
+    };
+    aarch64-darwin = requireFile rec {
+      name = "${pname}_${version}_osx.zip";
+      hash = "sha256-KMWYu2lecXY2LmoEMpKWEWLNUuy29Yn0gToCvj14PJ0=";
+      message = missingArchiveMessage "Mac OS X" "zip" name;
+    };
+    aarch64-linux = requireFile rec {
+      name = "${pname}_${version}_raspi.zip";
+      hash = "sha256-XmQYe1DEcLLjReoMzMsEqcCYZgzIuZdGcvZYd0GJMpU=";
+      message = missingArchiveMessage "Raspberry Pi" "zip" name;
+    };
   };
+  src =
+    srcs.${stdenv.hostPlatform.system} or (throw "Unsupported system: ${stdenv.hostPlatform.system}");
+
+  missingArchiveMessage = os: archive: name: ''
+    PICO-8 cannot be installed automatically since it requires a license.
+    The archive has to be loaded into the Nix Store manually.
+    In the email from lexaloffle, you should have a link to take you a page to download the application.
+
+    Example: https://www.lexaloffle.com/games.php?page=my&key=abcdefghijklm
+
+    Note you can also find specific versions at:
+     - https://www.lexaloffle.com/games.php?page=archive (requires login)
+
+    1. Visit the download page
+    2. Download the ${os} ${archive} archive
+    3. Navigate to the downloaded file and run the following command
+       nix-prefetch-url file://$PWD/${name}
+    4. Re-run the installation
+  '';
 
 in
 stdenv.mkDerivation (finalAttrs: rec {
